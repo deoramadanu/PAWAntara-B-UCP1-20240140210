@@ -9,22 +9,65 @@
 </head>
 <body>
     <%- include('partials/navbar') %>
-    
+
     <main class="container my-4">
         <section>
             <h1>Tanya AI Sembako</h1>
             <p>Tanyakan seputar stok atau harga barang di toko kami.</p>
-            <form>
+
+            <form id="aiForm">
                 <div class="mb-3">
                     <label for="pertanyaan" class="form-label">Pertanyaan Anda</label>
-                    <textarea class="form-control" id="pertanyaan" rows="3" placeholder="Contoh: Beras 5kg masih ada?"></textarea>
+                    <textarea class="form-control" id="pertanyaan" rows="3" placeholder="Contoh: Beras 5kg masih ada?" required></textarea>
                 </div>
-                <button type="button" class="btn btn-primary" onclick="alert('Fitur balasan AI dummy akan aktif di Sprint 2!')">Kirim Pertanyaan</button>
+                <button type="submit" class="btn btn-primary">Kirim Pertanyaan</button>
             </form>
+
+            <!-- Kotak Jawaban AI (Sprint 2 - Awalnya tersembunyi d-none) -->
+            <div id="jawaban-box" class="mt-4 alert alert-info d-none" role="alert">
+                <h5 class="alert-heading">Jawaban AI:</h5>
+                <p id="jawaban-text" class="mb-0"></p>
+            </div>
         </section>
     </main>
 
     <%- include('partials/footer') %>
     <script src="/js/script.js"></script>
+
+    <!-- Script Fetch API Sprint 2 (Menghubungkan Form ke Backend) -->
+    <script>
+        const aiForm = document.getElementById('aiForm');
+        const pertanyaanInput = document.getElementById('pertanyaan');
+        const jawabanBox = document.getElementById('jawaban-box');
+        const jawabanText = document.getElementById('jawaban-text');
+
+        aiForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = pertanyaanInput.value;
+
+            // Tampilkan status loading
+            jawabanBox.classList.remove('d-none', 'alert-danger');
+            jawabanBox.classList.add('alert-info');
+            jawabanText.innerText = 'AI sedang berpikir...';
+
+            try {
+                // Tembak endpoint API chat Sprint 2
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await res.json();
+
+                // Tampilkan jawaban AI dari server
+                jawabanText.innerText = data.reply;
+            } catch (err) {
+                console.error(err);
+                jawabanBox.classList.remove('alert-info');
+                jawabanBox.classList.add('alert-danger');
+                jawabanText.innerText = 'Gagal terhubung ke server AI.';
+            }
+        });
+    </script>
 </body>
 </html>
