@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Toko Sembako Ariesta</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <main class="container my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Kelola Produk (Dashboard)</h2>
+            <button class="btn btn-success" onclick="openAddModal()">+ Tambah Produk</button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped bg-white shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nama Produk</th>
+                        <th>Kategori</th>
+                        <th>Harga</th>
+                        <th>Stok</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="product-table-body">
+                    <!-- Data akan dimuat lewat Fetch API dari JavaScript di bawah -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal Form Sederhana untuk Tambah/Edit (Tanpa Reload) -->
+    <div id="product-modal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content p-4">
+                <h4 id="modal-title" class="mb-3">Tambah Produk</h4>
+                <form id="product-form">
+                    <input type="hidden" id="p-id">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Produk</label>
+                        <input type="text" id="p-name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kategori</label>
+                        <input type="text" id="p-category" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Harga (Rp)</label>
+                        <input type="number" id="p-price" class="form-control" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Stok</label>
+                        <input type="number" id="p-stock" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Simpan Data</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <%- include('partials/footer') %>
+    
+    <!-- Bootstrap JS untuk Modal -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script Fetch API untuk CRUD tanpa reload halaman -->
+    <script>
+        const modalEl = new bootstrap.Modal(document.getElementById('product-modal'));
+
+        // READ: Mengambil data dari API
+        async function fetchProducts() {
+            const res = await fetch('/api/products');
+            const data = await res.json();
+            const tbody = document.getElementById('product-table-body');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center">Belum ada produk</td></tr>`;
+                return;
+            }
+
+            data.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.name}</td>
+                        <td>${p.category}</td>
+                        <td>Rp ${p.price.toLocaleString('id-ID')}</td>
+                        <td>${p.stock}</td>
+                        <td class="text-center">
+                            <button class="btn btn-warning btn-sm mx-1" onclick="openEditModal(${p.id}, '${p.name}', '${p.category}', ${p.price}, ${p.stock})">Edit</button>
+                            <button class="btn btn-danger btn-sm mx-1" onclick="deleteProduct(${p.id})">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Buka Modal Tambah Data
+        function openAddModal() {
+            document.getElementById('modal-title').innerText = "Tambah Produk";
+            document.getElementById('product-form').reset();
+            document.getElementById('p-id').value = '';
+            modalEl.show();
+        }
+
+        // Buka Modal Edit Data
+        function openEditModal(id, name, category, price, stock) {
+            document.getElementById('modal-title').innerText = "Edit Produk";
+            document.getElementById('p-id').value = id;
+            document.getElementById('p-name').value = name;
+            document.getElementById('p-category').value = category;
+            document.getElementById('p-price').value = price;
+            document.getElementById('p-stock').value = stock;
+            modalEl.show();
+        }
+
+        // CREATE & UPDATE: Submit form
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('p-id').value;
+            const payload = {
+                name: document.getElementById('p-name').value,
+                category: document.getElementById('p-category').value,
+                price: document.getElementById('p-price').value,
+                stock: document.getElementById('p-stock').value
+            };
+
+            const url = id ? `/api/products/${id}` : '/api/products';
+            const method = id ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            modalEl.hide();
+            fetchProducts(); // Refresh tabel setelah simpan berhasil
+        });
+
+        // DELETE: Hapus Data
+        async function deleteProduct(id) {
+            if(confirm('Yakin ingin menghapus produk ini?')) {
+                await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                fetchProducts(); // Refresh tabel setelah hapus berhasil
+            }
+        }
+
+        // Tampilkan produk pertama kali saat halaman dibuka
+        fetchProducts();
+    </script>
+</body>
+</html>
